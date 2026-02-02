@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 using HidSharp.Platform.Windows;
-using LibVLCSharp;
+//using LibVLCSharp;
 using MajdataPlay.Buffers;
 using MajdataPlay.Extensions;
 using MajdataPlay.Net;
@@ -140,7 +140,15 @@ namespace MajdataPlay
         }
         internal static void InitPath()
         {
-#if UNITY_STANDALONE_WIN
+#if UNITY_OPENHARMONY
+            RootPath = "/storage/Users/currentUser/Documents/MajdataPlay";
+            if (!Directory.Exists(RootPath))
+            {
+                Directory.CreateDirectory(RootPath);
+            }
+            AssetsPath = Path.Combine(RootPath, "ExtStreamingAssets");
+            CachePath = "/data/storage/el2/base/cache";
+#elif UNITY_STANDALONE_WIN
             RootPath = Path.Combine(Application.dataPath, "../");
             AssetsPath = Application.streamingAssetsPath;
             CachePath = Path.Combine(RootPath, "Cache");

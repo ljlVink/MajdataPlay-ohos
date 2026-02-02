@@ -19,7 +19,7 @@ namespace MajdataPlay.IO
 #elif UNITY_ANDROID
                 return false;
 #else
-                return Input.GetKey(ToUnityKeyCode(keyCode));
+                return false;
 #endif
             }
             public static bool IsKeyUp(KeyCode keyCode)

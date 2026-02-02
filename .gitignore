@@ -93,3 +93,12 @@ Assets/Font/GenJyuuGothicScore.asset
 out.log
 /RecordOutputs
 /ChartSetting.db
+
+#IL2CPP
+
+Il2CppBackup/
+
+#OHOS
+
+*.app
+*.hap
