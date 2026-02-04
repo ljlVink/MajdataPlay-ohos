@@ -254,9 +254,11 @@ namespace MajdataPlay.Scenes.Title
             {
                 switch (e.SArea)
                 {
+#if !UNITY_OPENHARMONY
                     case SensorArea.A8:
                         MajInstances.AudioManager.OpenAsioPannel();
                         break;
+#endif
                     case SensorArea.E5:
                         NextScene();
                         break;

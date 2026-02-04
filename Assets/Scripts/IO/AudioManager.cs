@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using MajdataPlay.Utils;
 
+#if !UNITY_OPENHARMONY
 using ManagedBass;
 using ManagedBass.Wasapi;
 using ManagedBass.Mix;
 using ManagedBass.Asio;
+#endif
 using UnityEngine.Profiling;
 using UnityEditor;
 using System;
@@ -37,15 +39,18 @@ namespace MajdataPlay.IO
         string[] VoiceFileNames = new string [0];
         private List<AudioSampleWrap> SFXSamples = new();
 
+#if !UNITY_OPENHARMONY
         readonly static WasapiProcedure _wasapiProcedure;
         readonly static AsioProcedure _asioProcedure;
         private static int BassGlobalMixer = -114514;
+#endif
 
         public bool PlayDebug;
 
         static bool _isInited = false;
         readonly static object _initLock = new();
 
+#if !UNITY_OPENHARMONY
         unsafe static AudioManager()
         {
 #if ENABLE_IL2CPP
@@ -61,6 +66,7 @@ namespace MajdataPlay.IO
             _asioProcedure = Marshal.GetDelegateForFunctionPointer<AsioProcedure>((IntPtr)ptr2);
 #endif
         }
+#endif
         void Awake()
         {
             if (_isInited)
@@ -108,8 +114,10 @@ namespace MajdataPlay.IO
                                                                  .ToArray();
 
                 var backend = MajInstances.Settings.Audio.Backend;
+#if !UNITY_OPENHARMONY
                 var isBass = backend is (SoundBackendOption.BassSimple or SoundBackendOption.Asio or SoundBackendOption.Wasapi);
-#if !UNITY_ANDROID
+#endif
+#if !UNITY_ANDROID && !UNITY_OPENHARMONY
                 var wasapiOptions = MajInstances.Settings.Audio.Wasapi;
                 var asioOptions = MajInstances.Settings.Audio.Asio;
                 var isExclusiveRequest = wasapiOptions.Exclusive;
@@ -124,7 +132,7 @@ namespace MajdataPlay.IO
                     MajInstances.Settings.Audio.Channel.Main = mainChannel;
                 }
 #endif
-#if !UNITY_EDITOR && !UNITY_ANDROID
+#if !UNITY_EDITOR && !UNITY_ANDROID && !UNITY_OPENHARMONY
             if (MajEnv.Mode == RunningMode.View)
             {
                 backend = SoundBackendOption.Wasapi;
@@ -144,9 +152,17 @@ namespace MajdataPlay.IO
                         break;
                 }
 #endif
+#if UNITY_OPENHARMONY
+                if (backend != SoundBackendOption.Unity)
+                {
+                    MajDebug.LogDebug("OpenHarmony: Fallback to Unity");
+                    MajInstances.Settings.Audio.Backend = SoundBackendOption.Unity;
+                    backend = SoundBackendOption.Unity;
+                }
+#endif
                 switch (backend)
                 {
-#if !UNITY_ANDROID
+#if !UNITY_ANDROID && !UNITY_OPENHARMONY
                     case SoundBackendOption.Asio:
                         {
                             MajDebug.LogInfo("Bass Init: " + Bass.Init(Bass.NoSoundDevice));
@@ -228,6 +244,7 @@ namespace MajdataPlay.IO
                         }
                         break;
 #endif
+#if !UNITY_OPENHARMONY
                     case SoundBackendOption.BassSimple:
                         {
 #if UNITY_ANDROID
@@ -254,14 +271,19 @@ namespace MajdataPlay.IO
                             MajDebug.LogInfo($"[Bass] Current device buffer length: {Bass.GetConfig(Configuration.DeviceBufferLength)}");
                             MajDebug.LogInfo($"[Bass] Current device period: {Bass.GetConfig(Configuration.DevicePeriod)}");
                             MajDebug.LogInfo($"[Bass] Channel count: {Bass.Info.SpeakerCount}");
-#if !UNITY_ANDROID
+#if !UNITY_ANDROID && !UNITY_OPENHARMONY
                             GenerateMixingMatrix(Bass.Info.SpeakerCount, mainChannel);
 #else
                             GenerateMixingMatrix(Bass.Info.SpeakerCount, "Front");
 #endif
                         }
                         break;
+#endif
+                    case SoundBackendOption.Unity:
+                        // Unity audio backend - no additional initialization needed
+                        break;
                 }
+#if !UNITY_OPENHARMONY
                 if(isBass)
                 {
                     unsafe
@@ -274,11 +296,14 @@ namespace MajdataPlay.IO
                         }
                     }
                 }
+#endif
                 InitSFXSample(SFXFileNames, SFXFilePath);
                 InitSFXSample(VoiceFileNames, VoiceFilePath);
 
+#if !UNITY_OPENHARMONY
                 if (backend == SoundBackendOption.Wasapi || backend == SoundBackendOption.Asio || backend == SoundBackendOption.BassSimple)
                     MajDebug.LogInfo(Bass.LastError);
+#endif
 
                 if (PlayDebug)
                 {
@@ -291,6 +316,7 @@ namespace MajdataPlay.IO
                 MajDebug.LogException(e);
             }
         }
+#if !UNITY_OPENHARMONY
         [MonoPInvokeCallback(typeof(WasapiProcedure))]
         static int WasapiProcedure(IntPtr buffer, int length, IntPtr user)
         {
@@ -322,6 +348,7 @@ namespace MajdataPlay.IO
 
             return bytesRead;
         }
+#endif
         void InitSFXSample(string[] fileNameList,string rootPath)
         {
             foreach (var filePath in fileNameList)
@@ -363,6 +390,7 @@ namespace MajdataPlay.IO
 
         private void OnDestroy()
         {
+#if !UNITY_OPENHARMONY
             if(MajInstances.Settings.Audio.Backend == SoundBackendOption.Wasapi
                 || MajInstances.Settings.Audio.Backend == SoundBackendOption.Asio||
                 MajInstances.Settings.Audio.Backend == SoundBackendOption.BassSimple)
@@ -381,6 +409,13 @@ namespace MajdataPlay.IO
                 Bass.Stop();
                 Bass.Free();
             }
+#else
+            foreach (var sample in SFXSamples)
+            {
+                if(sample is not null)
+                    sample.Dispose();
+            }
+#endif
         }
 
         public void ReadVolumeFromSettings()
@@ -417,6 +452,7 @@ namespace MajdataPlay.IO
                     case SoundBackendOption.Unity:
                         sample = UnityAudioSample.Create($"file://{path}", gameObject);
                         break;
+#if !UNITY_OPENHARMONY
                     case SoundBackendOption.Asio:
                     case SoundBackendOption.Wasapi:
                         sample = BassAudioSample.Create(path, BassGlobalMixer, normalize, speedChange);
@@ -424,6 +460,7 @@ namespace MajdataPlay.IO
                     case SoundBackendOption.BassSimple:
                         sample = BassSimpleAudioSample.Create(path, normalize, speedChange);
                         break;
+#endif
                     default:
                         MajDebug.LogError("Backend not supported");
                         return AudioSampleWrap.Empty;
@@ -447,6 +484,7 @@ namespace MajdataPlay.IO
                 case SoundBackendOption.Unity:
                     sample = UnityAudioSample.Create(uri.OriginalString, gameObject);
                     break;
+#if !UNITY_OPENHARMONY
                 case SoundBackendOption.Asio:
                 case SoundBackendOption.Wasapi:
                     sample = BassAudioSample.CreateFromUri(uri, BassGlobalMixer);
@@ -454,6 +492,7 @@ namespace MajdataPlay.IO
                 case SoundBackendOption.BassSimple:
                     sample = BassSimpleAudioSample.CreateFromUri(uri);
                     break;
+#endif
                 default:
                     MajDebug.LogError("Backend not supported");
                     return AudioSampleWrap.Empty;
@@ -475,6 +514,7 @@ namespace MajdataPlay.IO
                         await UniTask.SwitchToMainThread();
                         sample = await UnityAudioSample.CreateAsync($"file://{path}", gameObject);
                         break;
+#if !UNITY_OPENHARMONY
                     case SoundBackendOption.Asio:
                     case SoundBackendOption.Wasapi:
                         sample = await BassAudioSample.CreateAsync(path, BassGlobalMixer, normalize, speedChange);
@@ -482,6 +522,7 @@ namespace MajdataPlay.IO
                     case SoundBackendOption.BassSimple:
                         sample = await BassSimpleAudioSample.CreateAsync(path, normalize, speedChange);
                         break;
+#endif
                     default:
                         MajDebug.LogError("Backend not supported");
                         return AudioSampleWrap.Empty;
@@ -507,6 +548,7 @@ namespace MajdataPlay.IO
                     await UniTask.SwitchToMainThread();
                     sample = await UnityAudioSample.CreateAsync(uri.OriginalString, gameObject);
                     break;
+#if !UNITY_OPENHARMONY
                 case SoundBackendOption.Asio:
                 case SoundBackendOption.Wasapi:
                     sample = BassAudioSample.CreateFromUri(uri, BassGlobalMixer);
@@ -514,6 +556,7 @@ namespace MajdataPlay.IO
                 case SoundBackendOption.BassSimple:
                     sample = BassSimpleAudioSample.CreateFromUri(uri);
                     break;
+#endif
                 default:
                     MajDebug.LogError("Backend not supported");
                     return AudioSampleWrap.Empty;
@@ -566,6 +609,7 @@ namespace MajdataPlay.IO
             else
                 MajDebug.LogError("No such SFX");
         }
+#if !UNITY_OPENHARMONY
         public void OpenAsioPannel()
         {
             if(MajInstances.Settings.Audio.Backend == SoundBackendOption.Asio)
@@ -573,6 +617,7 @@ namespace MajdataPlay.IO
                 BassAsio.ControlPanel();
             }
         }
+#endif
         static void GenerateMixingMatrix(int chCount, string main)
         {
             //        var matrix = new float[8, 2]
