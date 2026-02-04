@@ -24,6 +24,11 @@ PluginImporter:
         Exclude WeixinMiniGame: 0
         Exclude Win: 0
         Exclude Win64: 0
+  - first:
+      Android: Android
+    second:
+      enabled: 0
+      settings:
         Is16KbAligned: true
   - first:
       Any: 
@@ -61,7 +66,7 @@ PluginImporter:
     second:
       enabled: 1
       settings:
-        CPU: AnyCPU
+        CPU: x86_64
   - first:
       Standalone: OSXUniversal
     second:
