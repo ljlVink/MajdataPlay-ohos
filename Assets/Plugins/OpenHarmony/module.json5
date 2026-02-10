@@ -21,6 +21,9 @@
       },
       {
         "name": "ohos.permission.INTERNET"
+      },
+      {
+        "name": "ohos.permission.INTERCEPT_INPUT_EVENT"
       }
     ],
     "metadata": [

@@ -65,7 +65,7 @@ namespace MajdataPlay.IO
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _sensorStatusInPreviousFrame;
         }
-#if UNITY_ANDROID
+#if UNITY_ANDROID || UNITY_OPENHARMONY
         public static ReadOnlySpan<int> SensorClickedCountInThisFrame
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -265,7 +265,7 @@ namespace MajdataPlay.IO
         readonly static Memory<bool> _sensorStates = new bool[35];
         readonly static SwitchStatus[] _sensorStatusInPreviousFrame = new SwitchStatus[33];
         readonly static SwitchStatus[] _sensorStatusInThisFrame = new SwitchStatus[33];
-#if UNITY_ANDROID
+#if UNITY_ANDROID || UNITY_OPENHARMONY
         readonly static int[] _sensorClickedCountInThisFrame = new int[33];
 #endif
 
@@ -326,6 +326,8 @@ namespace MajdataPlay.IO
             ButtonRing.Init();
             TouchPanel.Init();
             LedDevice.Init();
+#elif UNITY_OPENHARMONY
+            OHInput.Init();
 #endif
         }
         //static ScreenInfo GenerateScreenInfo(int width, int height)
@@ -685,6 +687,9 @@ namespace MajdataPlay.IO
 #if UNITY_STANDALONE
                 ButtonRing.OnPreUpdate();
                 TouchPanel.OnPreUpdate();
+#elif UNITY_OPENHARMONY
+                OHInput.OnPreUpdate();
+                Array.Fill(_sensorClickedCountInThisFrame, 0);
 #elif UNITY_ANDROID
                 Array.Fill(_sensorClickedCountInThisFrame, 0);
 #endif
@@ -1026,6 +1031,9 @@ namespace MajdataPlay.IO
         }
         static void OnApplicationQuit()
         {
+#if UNITY_OPENHARMONY
+            OHInput.Shutdown();
+#endif
             MajEnv.OnApplicationQuit -= OnApplicationQuit;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

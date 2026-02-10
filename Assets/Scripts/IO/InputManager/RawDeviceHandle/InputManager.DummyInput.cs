@@ -25,7 +25,7 @@ namespace MajdataPlay.IO
         // 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0
         // Version bit (16bit)
         // uint16
-#if UNITY_ANDROID
+#if UNITY_ANDROID || UNITY_OPENHARMONY
         readonly static ulong?[][] _cachedPositions = new ulong?[4096][];
 #else
         readonly static ulong?[][] _cachedPositions = new ulong?[4096][];
@@ -46,6 +46,10 @@ namespace MajdataPlay.IO
             Span<bool> newStates = stackalloc bool[34];
             Span<bool> extraButtonStates = stackalloc bool[12];
 
+#if UNITY_OPENHARMONY
+            // Use OpenHarmony input interceptor for touch events
+            OHInput.ProcessTouchEvents(mainCamera, sensorClickedCount, newStates, extraButtonStates);
+#else
             var touches = Touch.activeTouches;
 
             if (touches.Count > 0)
@@ -58,6 +62,7 @@ namespace MajdataPlay.IO
                 FromMouse(Mouse.current, newStates, extraButtonStates, mainCamera);
             }
 #endif
+#endif
             var now = MajTimeline.UnscaledTime;
             foreach (var (i, state) in newStates.WithIndex())
             {
@@ -69,7 +74,7 @@ namespace MajdataPlay.IO
                     Timestamp = now
                 });
             }
-#if UNITY_ANDROID
+#if UNITY_ANDROID || UNITY_OPENHARMONY
             for (var i = 0; i < sensorClickedCount.Length; i++) 
             {
                 var clickedCount = sensorClickedCount[i];
@@ -100,6 +105,7 @@ namespace MajdataPlay.IO
                 });
             }
         }
+#if !UNITY_OPENHARMONY
         static void FromTouchPanel(in ReadOnlyArray<Touch> touches,
                                    Span<int> sensorClickedCount,
                                    Span<bool> sensorStates, 
@@ -155,21 +161,7 @@ namespace MajdataPlay.IO
 
             }
         }
-
-
-        static void FromMouse(Mouse mouse, Span<bool> sensorStates, Span<bool> extraButton, Camera mainCamera)
-        {
-            var leftButton = mouse.leftButton;
-            if(!leftButton.isPressed)
-            {
-                return;
-            }
-            var button = PositionToSensorState(sensorStates, mainCamera, mouse.position.value);
-            if (button != -1)
-            {
-                extraButton[button] = true;
-            }
-        }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static int PositionToSensorState(Span<bool> newStates, Camera mainCamera, Vector3 position)
@@ -190,6 +182,10 @@ namespace MajdataPlay.IO
             var x = (int)position.x;
             var y = (int)position.y;
             if(x < 0 || y < 0)
+            {
+                return -1;
+            }
+            if (x >= _cachedPositions.Length || _cachedPositions[x] == null || y >= _cachedPositions[x].Length)
             {
                 return -1;
             }
@@ -325,5 +321,21 @@ namespace MajdataPlay.IO
                 }
             }
         }
+
+#if !UNITY_OPENHARMONY
+        static void FromMouse(Mouse mouse, Span<bool> sensorStates, Span<bool> extraButton, Camera mainCamera)
+        {
+            var leftButton = mouse.leftButton;
+            if(!leftButton.isPressed)
+            {
+                return;
+            }
+            var button = PositionToSensorState(sensorStates, mainCamera, mouse.position.value);
+            if (button != -1)
+            {
+                extraButton[button] = true;
+            }
+        }
+#endif
     }
 }
