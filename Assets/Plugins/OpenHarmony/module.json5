@@ -1,0 +1,81 @@
+{
+  "module": {
+    "name": "entry",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "TuanjiePlayerAbility",
+    "deviceTypes": [
+      "default",
+      "tablet"
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY",
+        "reason": "$string:module_desc",
+        "usedScene": {
+          "abilities": [
+            "TuanjiePlayerAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.INTERNET"
+      },
+      {
+        "name": "ohos.permission.INTERCEPT_INPUT_EVENT"
+      }
+    ],
+    "metadata": [
+      {
+        "name": "ArkTSPartialUpdate",
+        "value": "true"
+      },
+      {
+        "name": "partialUpdateStrictCheck",
+        "value": "warn"
+      }
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "TuanjiePlayerAbility",
+        "srcEntry": "./ets/ability/TuanjiePlayerAbility.ets",
+        "launchType": "singleton",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:icon",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:start_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "orientation": "landscape",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ]
+          }
+        ],
+        "metadata": [
+          {
+            "name": "ohos.ability.window.isMaximize",
+            "value": "true",
+          },
+          {
+            "name": "ohos.ability.window.width",
+            "value": "1280",
+          },
+          {
+            "name": "ohos.ability.window.height",
+            "value": "720",
+          }
+        ],
+      }
+    ],
+  }
+}

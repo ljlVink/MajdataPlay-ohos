@@ -142,7 +142,15 @@ namespace MajdataPlay
 
         internal static void InitPath()
         {
-#if UNITY_STANDALONE || UNITY_EDITOR
+#if UNITY_OPENHARMONY
+            RootPath = "/storage/Users/currentUser/Documents/MajdataPlay";
+            if (!Directory.Exists(RootPath))
+            {
+                Directory.CreateDirectory(RootPath);
+            }
+            AssetsPath = Path.Combine(RootPath, "ExtStreamingAssets");
+            CachePath = "/data/storage/el2/base/cache";
+#elif UNITY_STANDALONE || UNITY_EDITOR
             RootPath = Path.Combine(Application.dataPath, "../");
             AssetsPath = Application.streamingAssetsPath;
             CachePath = Path.Combine(RootPath, "Cache");
